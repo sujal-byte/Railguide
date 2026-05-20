@@ -112,6 +112,15 @@ class LanguageProvider extends ChangeNotifier {
       'meters': 'meters',
       'in_10_meters': 'In 10 meters',
       'then': 'then',
+
+      // ChatBot
+      'bot_welcome': 'Hello! How can I help you today?',
+      'bot_option_lost': '🔍 Lost path / Find nearest nodes',
+      'bot_option_helpdesk': 'ℹ️ Help Desk info',
+      'bot_option_emergency': '🚨 Emergency numbers',
+      'bot_lost_response': 'Don\'t worry! Here are your navigation session nodes:',
+      'bot_helpdesk_response': 'You can visit the main Help Desk at the Station Entrance or call us at +91-80-2220-0000.',
+      'bot_emergency_prompt': 'Which emergency service do you need?',
     },
     'hi': {
       'app_title': 'रेलगाइड',
@@ -179,6 +188,15 @@ class LanguageProvider extends ChangeNotifier {
       'meters': 'मीटर',
       'in_10_meters': '10 मीटर के बाद',
       'then': 'फिर',
+
+      // ChatBot
+      'bot_welcome': 'नमस्ते! आज मैं आपकी क्या सहायता कर सकता हूँ?',
+      'bot_option_lost': '🔍 रास्ता खो गया / नजदीकी नोड्स खोजें',
+      'bot_option_helpdesk': 'ℹ️ हेल्प डेस्क की जानकारी',
+      'bot_option_emergency': '🚨 आपातकालीन नंबर',
+      'bot_lost_response': 'चिंता न करें! यहाँ आपके नेविगेशन सत्र के नोड्स हैं:',
+      'bot_helpdesk_response': 'आप स्टेशन प्रवेश द्वार पर मुख्य हेल्प डेस्क पर जा सकते हैं या +91-80-2220-0000 पर कॉल कर सकते हैं।',
+      'bot_emergency_prompt': 'आपको कौन सी आपातकालीन सेवा की आवश्यकता है?',
     },
     'kn': {
       'app_title': 'ರೈಲ್‌ಗೈಡ್',
@@ -246,6 +264,15 @@ class LanguageProvider extends ChangeNotifier {
       'meters': 'ಮೀಟರ್',
       'in_10_meters': '10 ಮೀಟರ್‌ಗಳ ನಂತರ',
       'then': 'ನಂತರ',
+
+      // ChatBot
+      'bot_welcome': 'ನಮಸ್ಕಾರ! ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?',
+      'bot_option_lost': '🔍 ಮಾರ್ಗ ಕಳೆದುಹೋಗಿದೆ / ಹತ್ತಿರದ ನೋಡ್‌ಗಳನ್ನು ಹುಡುಕಿ',
+      'bot_option_helpdesk': 'ℹ️ ಸಹಾಯ ಕೇಂದ್ರದ ಮಾಹಿತಿ',
+      'bot_option_emergency': '🚨 ತುರ್ತು ಸಂಖ್ಯೆಗಳು',
+      'bot_lost_response': 'ಚಿಂತಿಸಬೇಡಿ! ನಿಮ್ಮ ನ್ಯಾವಿಗೇಶನ್ ನೋಡ್‌ಗಳು ಇಲ್ಲಿವೆ:',
+      'bot_helpdesk_response': 'ನೀವು ನಿಲ್ದಾಣದ ಪ್ರವೇಶದ್ವಾರದಲ್ಲಿರುವ ಮುಖ್ಯ ಸಹಾಯ ಕೇಂದ್ರಕ್ಕೆ ಭೇಟಿ ನೀಡಬಹುದು ಅಥವಾ +91-80-2220-0000 ಗೆ ಕರೆ ಮಾಡಬಹುದು.',
+      'bot_emergency_prompt': 'ನಿಮಗೆ ಯಾವ ತುರ್ತು ಸೇವೆಯ ಅಗತ್ಯವಿದೆ?',
     },
   };
 }
