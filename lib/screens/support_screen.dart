@@ -1,5 +1,5 @@
 // ============================================================
-// RailGuide — Support Screen
+// RailGuide — Support Screen (Chatbot Options & Dialogue Fixed)
 // screens/support_screen.dart
 // ============================================================
 
@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../providers/language_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/navigation_provider.dart'; 
 import '../utils/app_theme.dart';
 
 class SupportScreen extends StatelessWidget {
@@ -18,7 +19,6 @@ class SupportScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageProvider>();
     
-    // ✅ FIXED: Added missing Scaffold container to fix "No Material widget found" runtime exception
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppTheme.railwayBlue,
@@ -44,10 +44,251 @@ class SupportScreen extends StatelessWidget {
           ],
         ),
       ),
+
+      // Floating Chatbot Button
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => const _ChatbotDrawer(),
+          );
+        },
+        backgroundColor: AppTheme.railwayBlue,
+        icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
+        label: Text(
+          'Ask Bot',
+          style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+      ),
     );
   }
 }
 
+// ──────────────────────────────────────────────────────────
+// Chatbot Sheet Drawer Implementation
+// ──────────────────────────────────────────────────────────
+class _ChatbotDrawer extends StatefulWidget {
+  const _ChatbotDrawer();
+
+  @override
+  State<_ChatbotDrawer> createState() => _ChatbotDrawerState();
+}
+
+class _ChatbotDrawerState extends State<_ChatbotDrawer> {
+  final List<Map<String, dynamic>> _messages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final lang = context.read<LanguageProvider>();
+      setState(() {
+        _messages.add({
+          'isBot': true,
+          'text': lang.t('bot_welcome'),
+        });
+      });
+    });
+  }
+
+  // ✅ FIXED: Clean user dialogue flow switching directly on readable option texts
+  void _handleOptionClick(String userChoiceDisplay, String technicalMode) {
+    final lang = context.read<LanguageProvider>();
+    final nav  = context.read<NavigationProvider>();
+
+    // 1. Post user text selection bubble to stream instantly
+    setState(() {
+      _messages.add({'isBot': false, 'text': userChoiceDisplay});
+    });
+
+    // 2. Evaluate responsive chatbot track paths
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+
+      if (technicalMode == 'lost') {
+        final isCampus = nav.mode == AppNavigationMode.campus;
+        final startNode = isCampus ? nav.campusStartNode : nav.startNode;
+        final endNode   = isCampus ? nav.campusEndNode : nav.endNode;
+
+        String answer;
+        if (startNode == null && endNode == null) {
+          answer = "You haven't calculated a direction route yet. Please visit the front dashboard and scan a matching QR code checkpoint to map your path.";
+        } else {
+          answer = "${lang.t('bot_lost_response')}\n\n"
+              "📍 ${lang.t('start_node')}: ${startNode != null ? lang.t(startNode.id) : 'Not Scanned'}\n"
+              "🎯 ${lang.t('select_destination')}: ${endNode != null ? lang.t(endNode.id) : 'Not Selected'}";
+        }
+
+        setState(() {
+          _messages.add({'isBot': true, 'text': answer});
+        });
+
+      } else if (technicalMode == 'helpdesk') {
+        // ✅ FIXED: Direct descriptive routing statement injection
+        setState(() {
+          _messages.add({
+            'isBot': true, 
+            'text': 'Next to ticket counter please scan nearest qr code and go to ticket counter'
+          });
+        });
+
+      } else if (technicalMode == 'emergency') {
+        setState(() {
+          _messages.add({
+            'isBot': true,
+            'text': "${lang.t('bot_emergency_prompt')}\n\n"
+                "🚔 Railway Police (RPF): 1800-111-322\n"
+                "🚑 Medical Emergency: 108"
+          });
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.50,
+      maxChildSize: 0.95,
+      builder: (_, scrollController) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40, height: 5,
+              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+            ),
+            
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              child: Row(
+                children: [
+                  const Text('🤖', style: TextStyle(fontSize: 26)),
+                  const SizedBox(width: 12),
+                  Text('RailGuide Assistant', 
+                    style: GoogleFonts.rajdhani(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context), 
+                    icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+
+            Expanded(
+              child: ListView.builder(
+                controller: scrollController,
+                padding: const EdgeInsets.all(16),
+                itemCount: _messages.length,
+                itemBuilder: (context, i) {
+                  final msg = _messages[i];
+                  return _ChatBubble(isBot: msg['isBot'], text: msg['text']);
+                },
+              ),
+            ),
+
+            // Prompt shortcut console
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              decoration: const BoxDecoration(
+                color: Colors.white, 
+                border: Border(top: BorderSide(color: Color(0xFFEDF2F7))),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('CHOOSE A PROMPT:', 
+                    style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.textLight, letterSpacing: 0.6)),
+                  const SizedBox(height: 10),
+                  
+                  // ✅ CLEAN SHORTCUT LABELS: "Lost", "Help Desk", "Emergency"
+                  _BotOptionChip(label: '🔍  Lost', onTap: () => _handleOptionClick('Lost', 'lost')),
+                  const SizedBox(height: 6),
+                  _BotOptionChip(label: 'ℹ️  Help Desk', onTap: () => _handleOptionClick('Help Desk', 'helpdesk')),
+                  const SizedBox(height: 6),
+                  _BotOptionChip(label: '🚨  Emergency', onTap: () => _handleOptionClick('Emergency', 'emergency')),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BotOptionChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _BotOptionChip({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: AppTheme.railwayBlue,
+        elevation: 0,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12), 
+          side: BorderSide(color: AppTheme.railwayBlue.withValues(alpha: 0.18)),
+        ),
+      ),
+      onPressed: onTap,
+      child: Text(label, style: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+class _ChatBubble extends StatelessWidget {
+  final bool isBot;
+  final String text;
+  const _ChatBubble({required this.isBot, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: isBot ? Alignment.centerLeft : Alignment.centerRight,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+        decoration: BoxDecoration(
+          color: isBot ? Colors.white : AppTheme.railwayBlue,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isBot ? 4 : 16),
+            bottomRight: Radius.circular(isBot ? 16 : 4),
+          ),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))],
+        ),
+        child: Text(
+          text,
+          style: GoogleFonts.inter(
+            fontSize: 13.5, 
+            fontWeight: isBot ? FontWeight.w500 : FontWeight.w600, 
+            color: isBot ? AppTheme.textPrimary : Colors.white, 
+            height: 1.4,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Existing Card Components ────────────────────────────────
 class _ReportIssueCard extends StatefulWidget {
   final LanguageProvider lang;
   const _ReportIssueCard({required this.lang});
@@ -158,7 +399,7 @@ class _EmergencyCard extends StatelessWidget {
   final LanguageProvider lang; const _EmergencyCard({required this.lang});
   @override
   Widget build(BuildContext context) {
-    final contacts = [_Contact('🚔', 'Railway Police (RPF)', '1800-111-322', AppTheme.error), _Contact('🚑', 'Medical Emergency', '108', AppTheme.error), _Contact('🔧', 'Station Master', '+91-80-2220-0000', AppTheme.railwayBlue), _Contact('ℹ️', 'Enquiry Helpline', '139', AppTheme.railwayBlueMid)];
+    final contacts = [_Contact('🚔', 'Railway Police (RPF)', '1800-111-322', AppTheme.error), _Contact('📷', 'Medical Emergency', '108', AppTheme.error), _Contact('🔧', 'Station Master', '+91-80-2220-0000', AppTheme.railwayBlue), _Contact('ℹ️', 'Enquiry Helpline', '139', AppTheme.railwayBlueMid)];
     return Container(
       padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 3))]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Text('📞', style: TextStyle(fontSize: 22)), const SizedBox(width: 10), Text(lang.t('emergency'), style: Theme.of(context).textTheme.titleLarge)]), const SizedBox(height: 16), ...contacts.map((c) => _ContactTile(contact: c))]),
@@ -184,7 +425,7 @@ class _HowItWorksCard extends StatelessWidget {
     final steps = [('📍', 'Find a QR code', 'Locate a QR code placard near your current position.'), ('📷', 'Scan the QR', 'Tap Scan QR Code and point your camera at the placard.'), ('🎯', 'Choose destination', 'Select where you want to go from the dropdown list.'), ('🗺️', 'Follow the path', "RailGuide runs Dijkstra's algorithm and shows directions.")];
     return Container(
       padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 3))]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Text('❓', style: TextStyle(fontSize: 22)), const SizedBox(width: 10), Text('How It Works', style: Theme.of(context).textTheme.titleLarge)]), const SizedBox(height: 16), ...steps.map((step) => Padding(padding: const EdgeInsets.only(bottom: 14), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 42, height: 42, decoration: BoxDecoration(color: AppTheme.safetyYellow.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(12)), child: Center(child: Text(step.$1, style: const TextStyle(fontSize: 20)))), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(step.$2, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)), const SizedBox(height: 2), Text(step.$3, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondary, height: 1.5))]))])))],)
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Text('❓', style: TextStyle(fontSize: 22)), const SizedBox(width: 10), Text('How It Works', style: Theme.of(context).textTheme.titleLarge)]), const SizedBox(height: 16), ...steps.map((step) => Padding(padding: const EdgeInsets.only(bottom: 14), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 42, height: 42, decoration: BoxDecoration(color: AppTheme.safetyYellow.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(12)), child: Center(child: Text(step.$1, style: const TextStyle(fontSize: 20)))), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(step.$2, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)), const SizedBox(height: 2), Text(step.$3, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondary, height: 1.5))]))])))]), // ✅ FIXED: Added missing closing parenthesis here
     );
   }
 }
