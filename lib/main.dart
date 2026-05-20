@@ -1,16 +1,19 @@
 // ============================================================
-// RailGuide — App Entry Point
+// RailGuide — App Entry Point (Updated)
 // main.dart
+//
+// Added TrainProvider to MultiProvider
 // ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart'; // ← ADD THIS
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/language_provider.dart';
+import 'providers/train_provider.dart'; // ← NEW
 import 'screens/splash_screen.dart';
 import 'utils/app_theme.dart';
 
@@ -42,31 +45,23 @@ class RailGuideApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => RailAuthProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => TrainProvider()), // ← NEW
       ],
       child: Consumer<LanguageProvider>(
         builder: (context, langProvider, _) {
           return MaterialApp(
             title: 'RailGuide',
             debugShowCheckedModeBanner: false,
-
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: ThemeMode.light,
-
-            // ── Locale ─────────────────────────────────────
             locale: langProvider.currentLocale,
             supportedLocales: LanguageProvider.supportedLocales,
-
-            // ── Localisation delegates (FIXES THE CRASH) ───
-            // These are required for Material widgets like
-            // BottomNavigationBar, AlertDialog, DatePicker etc.
-            // to find their translated labels in any locale.
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-
             home: const SplashScreen(),
           );
         },

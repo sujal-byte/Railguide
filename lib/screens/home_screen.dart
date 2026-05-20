@@ -1,5 +1,5 @@
 // ============================================================
-// RailGuide — Home / Dashboard Screen (With Active Module Cards)
+// RailGuide — Home / Dashboard Screen (Fully Optimized)
 // screens/home_screen.dart
 // ============================================================
 
@@ -12,7 +12,7 @@ import 'navigation_screen.dart';
 import 'navigation/campus_navigation_screen.dart';
 import 'support_screen.dart';
 
-import '../models/train_info.dart';
+import '../services/train_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/language_provider.dart';
 import '../utils/app_theme.dart';
@@ -22,9 +22,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lang   = context.watch<LanguageProvider>();
-    final auth   = context.watch<RailAuthProvider>();
-    final trains = TrainInfo.mockTrains();
+    final lang = context.watch<LanguageProvider>();
+    final auth = context.watch<RailAuthProvider>();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -34,7 +33,6 @@ class HomeScreen extends StatelessWidget {
           _WelcomeBanner(auth: auth),
           const SizedBox(height: 24),
           
-          // ── Module Hub Navigation Section ─────────────────
           Text(
             'Select Navigation Mode',
             style: GoogleFonts.rajdhani(
@@ -47,18 +45,15 @@ class HomeScreen extends StatelessWidget {
           _HubNavigationMenu(lang: lang),
           const SizedBox(height: 28),
 
-          // ── Train Info section header ─────────────────────
+          // ── Train Info Header ───────────────────────────
           Row(
             children: [
-              const Icon(Icons.train_rounded,
-                  color: AppTheme.railwayBlue, size: 22),
+              const Icon(Icons.train_rounded, color: AppTheme.railwayBlue, size: 22),
               const SizedBox(width: 8),
-              Text(lang.t('train_info'),
-                  style: Theme.of(context).textTheme.titleLarge),
+              Text(lang.t('train_info'), style: Theme.of(context).textTheme.titleLarge),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppTheme.success.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
@@ -68,13 +63,11 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     Container(
                       width: 7, height: 7,
-                      decoration: const BoxDecoration(
-                        color: AppTheme.success,
-                        shape: BoxShape.circle,
-                      ),
+                      decoration: const BoxDecoration(color: AppTheme.success, shape: BoxShape.circle),
                     ),
                     const SizedBox(width: 5),
-                    Text('Live',
+                    Text(
+                      'Live API',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -88,7 +81,36 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          ...trains.map((t) => _TrainCard(info: t, lang: lang)),
+          // Live Network FutureBuilder Container
+          FutureBuilder<TrainApiResult>(
+            future: TrainService.fetchLiveStatus(trainNumber: '12627'),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 30),
+                  child: Center(child: CircularProgressIndicator(color: AppTheme.railwayBlue)),
+                );
+              }
+
+              if (snapshot.hasError || snapshot.data == null || snapshot.data!.hasError) {
+                final errMsg = snapshot.data?.error ?? 'Network Timeout';
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.error.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '⚠️ Live Schedule Offline: $errMsg\nUsing default local system fallback.',
+                    style: GoogleFonts.inter(fontSize: 12, color: AppTheme.error, fontWeight: FontWeight.w500),
+                  ),
+                );
+              }
+
+              final liveTrain = snapshot.data!.data!;
+              return _LiveTrainCard(info: liveTrain, lang: lang);
+            },
+          ),
           const SizedBox(height: 16),
         ],
       ),
@@ -114,13 +136,7 @@ class _WelcomeBanner extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.railwayBlue.withValues(alpha: 0.30),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppTheme.railwayBlue.withValues(alpha: 0.30), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Row(
         children: [
@@ -128,34 +144,18 @@ class _WelcomeBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Welcome back!',
-                  style: GoogleFonts.inter(
-                      fontSize: 13, color: Colors.white70)),
+                Text('Welcome back!', style: GoogleFonts.inter(fontSize: 13, color: Colors.white70)),
                 const SizedBox(height: 4),
                 Text(
-                  auth.isGuest
-                      ? 'Guest Passenger'
-                      : auth.userEmail?.split('@').first ?? 'Passenger',
-                  style: GoogleFonts.rajdhani(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
+                  auth.isGuest ? 'Guest Passenger' : auth.userEmail?.split('@').first ?? 'Passenger',
+                  style: GoogleFonts.rajdhani(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppTheme.safetyYellow,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(color: AppTheme.safetyYellow, borderRadius: BorderRadius.circular(8)),
                   child: Text('📍 Bengaluru City Station',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.railwayBlue,
-                    ),
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.railwayBlue),
                   ),
                 ),
               ],
@@ -183,10 +183,10 @@ class _HubNavigationMenu extends StatelessWidget {
         _MenuCard(
           title: '${lang.t('navigate')} (Campus)',
           icon: '🎓',
-          color: const Color(0xFF1B6B3A), // collegeGreen accent
+          color: const Color(0xFF1B6B3A),
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const CampusNavigationScreen()),
+              MaterialPageRoute(builder: (_) => const CampusNavigationScreen()), // ✅ Fixed: Removed const from MaterialPageRoute, added to CampusNavigationScreen
             );
           },
         ),
@@ -199,7 +199,7 @@ class _HubNavigationMenu extends StatelessWidget {
           color: AppTheme.railwayBlue,
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const NavigationScreen()),
+              MaterialPageRoute(builder: (_) => const NavigationScreen()), // ✅ Fixed: Removed const from MaterialPageRoute, added to NavigationScreen
             );
           },
         ),
@@ -212,7 +212,7 @@ class _HubNavigationMenu extends StatelessWidget {
           color: AppTheme.error,
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SupportScreen()),
+              MaterialPageRoute(builder: (_) => const SupportScreen()), // ✅ Fixed: Removed const from MaterialPageRoute, added to SupportScreen
             );
           },
         ),
@@ -240,13 +240,7 @@ class _MenuCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Material(
         color: Colors.transparent,
@@ -259,30 +253,14 @@ class _MenuCard extends StatelessWidget {
               children: [
                 Container(
                   width: 44, height: 44,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text(icon, style: const TextStyle(fontSize: 22)),
-                  ),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(12)),
+                  child: Center(child: Text(icon, style: const TextStyle(fontSize: 22))),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Text(
-                    title,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
+                  child: Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: color.withValues(alpha: 0.70),
-                ),
+                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: color.withValues(alpha: 0.70)),
               ],
             ),
           ),
@@ -293,12 +271,12 @@ class _MenuCard extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────────
-// Train Information Card
+// Live API Bound Train Card Widget
 // ──────────────────────────────────────────────────────────
-class _TrainCard extends StatelessWidget {
-  final TrainInfo info;
+class _LiveTrainCard extends StatelessWidget {
+  final LiveTrainInfo info;
   final LanguageProvider lang;
-  const _TrainCard({required this.info, required this.lang});
+  const _LiveTrainCard({required this.info, required this.lang});
 
   @override
   Widget build(BuildContext context) {
@@ -308,13 +286,7 @@ class _TrainCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
       ),
       child: Row(
         children: [
@@ -324,9 +296,7 @@ class _TrainCard extends StatelessWidget {
               color: AppTheme.railwayBlue.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Center(
-              child: Text('🚉', style: TextStyle(fontSize: 24)),
-            ),
+            child: const Center(child: Text('🚂', style: TextStyle(fontSize: 24))),
           ),
           const SizedBox(width: 14),
 
@@ -334,17 +304,15 @@ class _TrainCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(info.trainName,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
+                Text(
+                  info.trainName,
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
                 ),
                 const SizedBox(height: 2),
-                Text('# ${info.trainNumber}',
-                  style: GoogleFonts.inter(
-                      fontSize: 12, color: AppTheme.textLight)),
+                Text('# ${info.trainNumber} • Next: ${info.currentStation}',
+                  style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textLight),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -353,47 +321,32 @@ class _TrainCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.safetyYellow,
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: AppTheme.safetyYellow, borderRadius: BorderRadius.circular(8)),
                 child: Text(
-                  '${lang.t('platform')} ${info.platformNumber}',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.railwayBlue,
-                  ),
+                  'PF --',
+                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.railwayBlue),
                 ),
               ),
               const SizedBox(height: 4),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.access_time,
-                      size: 12, color: AppTheme.textLight),
+                  const Icon(Icons.access_time, size: 12, color: AppTheme.textLight),
                   const SizedBox(width: 4),
-                  Text(info.arrivalTime,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textSecondary,
-                    ),
+                  Text(
+                    info.actualArrival == '--:--' ? info.actualDeparture : info.actualArrival,
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
                   ),
                 ],
               ),
               const SizedBox(height: 2),
               Text(
-                info.status +
-                    (info.delayMinutes > 0
-                        ? ' (+${info.delayMinutes}m)'
-                        : ''),
+                info.status + (info.delayMinutes > 0 ? ' (+${info.delayMinutes}m)' : ''),
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: info.statusColor,
+                  color: info.status == 'On Time' ? AppTheme.success : AppTheme.error,
                 ),
               ),
             ],

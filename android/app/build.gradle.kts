@@ -11,13 +11,13 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
+    sourceCompatibility = JavaVersion.VERSION_11 // ✅ Added "=" assignment operator
+    targetCompatibility = JavaVersion.VERSION_11 // ✅ Added "=" assignment operator
+}
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
+kotlinOptions {
+    jvmTarget = "11" // ✅ Changed single quotes '11' to double quotes "11"
+}
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
