@@ -1,24 +1,20 @@
 // ============================================================
-// RailGuide — Home Screen (Live Train Status)
+// RailGuide — Home Screen (Connected Live API + Quick Actions)
 // screens/home_screen.dart
-//
-// Changes from original:
-//  • Replaces mock TrainInfo.mockTrains() with live API data
-//  • Uses TrainProvider for real-time status + auto-refresh
-//  • Pull-to-refresh support
-//  • Shimmer loading state
-//  • Live delay badges with actual API delay minutes
 // ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'navigation/campus_navigation_screen.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/language_provider.dart';
 import '../providers/train_provider.dart';
+import '../providers/navigation_provider.dart'; // ✅ Added to access the navigation router state engine
 import '../services/train_service.dart';
 import '../utils/app_theme.dart';
+import 'navigation_screen.dart'; // ✅ Added to support navigation view redirection handshakes
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -30,7 +26,6 @@ class HomeScreen extends StatelessWidget {
     final trains = context.watch<TrainProvider>();
 
     return RefreshIndicator(
-      // Pull down to refresh live data
       color: AppTheme.railwayBlue,
       onRefresh: trains.refresh,
       child: SingleChildScrollView(
@@ -54,14 +49,12 @@ class HomeScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
 
-                // Live / Refreshing badge
                 trains.isRefreshing
                     ? _RefreshingBadge()
                     : _LiveBadge(),
 
                 const SizedBox(width: 8),
 
-                // Manual refresh button
                 GestureDetector(
                   onTap: trains.refresh,
                   child: Container(
@@ -78,7 +71,6 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 6),
 
-            // Last updated text
             Text(
               'Auto-refreshes every 90s  •  Pull down to refresh',
               style: GoogleFonts.inter(
@@ -173,7 +165,7 @@ class _RefreshingBadge extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────────
-// Live Train Card — shows real API data or loading shimmer
+// Live Train Card
 // ──────────────────────────────────────────────────────────
 class _LiveTrainCard extends StatelessWidget {
   final Map<String, String> trainMeta;
@@ -219,7 +211,6 @@ class _LiveTrainCard extends StatelessWidget {
   }
 }
 
-// ── Loaded data card ──────────────────────────────────────
 class _DataCard extends StatelessWidget {
   final LiveTrainInfo data;
   final String platform;
@@ -247,10 +238,8 @@ class _DataCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Top row ─────────────────────────────────────
           Row(
             children: [
-              // Train icon
               Container(
                 width: 48, height: 48,
                 decoration: BoxDecoration(
@@ -262,7 +251,6 @@ class _DataCard extends StatelessWidget {
               ),
               const SizedBox(width: 14),
 
-              // Name + number
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,7 +269,6 @@ class _DataCard extends StatelessWidget {
                 ),
               ),
 
-              // Platform tag
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -303,7 +290,6 @@ class _DataCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
 
-                  // Status badge
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
@@ -328,7 +314,6 @@ class _DataCard extends StatelessWidget {
             ],
           ),
 
-          // ── Live details row ─────────────────────────────
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(
@@ -339,7 +324,6 @@ class _DataCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Current location
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,7 +360,6 @@ class _DataCard extends StatelessWidget {
                     color: Colors.grey.shade200,
                     margin: const EdgeInsets.symmetric(horizontal: 12)),
 
-                // Schedule
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -408,7 +391,6 @@ class _DataCard extends StatelessWidget {
 
                 const SizedBox(width: 16),
 
-                // Actual time
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -446,7 +428,6 @@ class _DataCard extends StatelessWidget {
   }
 }
 
-// ── Loading shimmer card ──────────────────────────────────
 class _ShimmerCard extends StatefulWidget {
   @override
   State<_ShimmerCard> createState() => _ShimmerCardState();
@@ -522,7 +503,6 @@ class _ShimmerCardState extends State<_ShimmerCard>
   }
 }
 
-// ── Error card (API key not set or network error) ─────────
 class _ErrorCard extends StatelessWidget {
   final String trainName;
   final String trainNumber;
@@ -682,12 +662,14 @@ class _WelcomeBanner extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────────
-// Quick Access Grid
+// Quick Access Grid (Smart Node Routing Engine)
 // ──────────────────────────────────────────────────────────
 class _QuickItem {
-  final String emoji, label;
+  final String emoji, label, targetNodeId;
   final Color color;
-  const _QuickItem(this.emoji, this.label, this.color);
+  final bool isCampusNode; 
+
+  const _QuickItem(this.emoji, this.label, this.color, this.targetNodeId, {this.isCampusNode = false});
 }
 
 class _QuickAccessGrid extends StatelessWidget {
@@ -697,13 +679,13 @@ class _QuickAccessGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const items = [
-      _QuickItem('🚻', 'Washrooms', AppTheme.railwayBlueLight),
-      _QuickItem('🎫', 'Tickets',   AppTheme.railwayBlueMid),
-      _QuickItem('🅿️', 'Parking',  AppTheme.railwayBlue),
-      _QuickItem('🔒', 'Security',  Color(0xFF374151)),
+      _QuickItem('🚻', 'Washrooms', AppTheme.railwayBlueLight, 'washrooms', isCampusNode: false),
+      _QuickItem('🎫', 'Tickets',   AppTheme.railwayBlueMid,   'ticket_counter', isCampusNode: false),
+      _QuickItem('🚉', 'Platform 1', Color(0xFF374151),        'platform_1', isCampusNode: false),
     ];
+
     return GridView.count(
-      crossAxisCount: 4,
+      crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
@@ -717,44 +699,72 @@ class _QuickTile extends StatelessWidget {
   final _QuickItem item;
   const _QuickTile({required this.item});
 
+  // ✅ FIXED: Correctly placed INSIDE the _QuickTile class scope
+  void _handleQuickNavigation(BuildContext context) {
+    final nav = context.read<NavigationProvider>();
+
+    nav.reset();
+
+    if (item.isCampusNode) {
+      nav.setMode(AppNavigationMode.campus);
+      nav.setCampusEnd(item.targetNodeId); 
+      
+      // ✅ FIXED: Target class name updated to CampusNavScreen
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const CampusNavigationScreen()),
+      );
+    } else {
+      nav.setMode(AppNavigationMode.railway);
+      nav.setDestination(item.targetNodeId); 
+      
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const NavigationScreen()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              color: item.color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(12),
+    return GestureDetector(
+      onTap: () => _handleQuickNavigation(context),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: Center(
-                child: Text(item.emoji,
-                    style: const TextStyle(fontSize: 22))),
-          ),
-          const SizedBox(height: 6),
-          Text(item.label,
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textSecondary,
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: item.color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(item.emoji, style: const TextStyle(fontSize: 22)),
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              item.label,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
-}
+} // ✅ FIXED: Class properly closed here at the very end

@@ -1,13 +1,6 @@
 // ============================================================
-// RailGuide — Campus Navigation Screen
+// RailGuide — Campus Navigation Screen (With Live Vector Map)
 // screens/navigation/campus_navigation_screen.dart
-//
-// RNSIT Campus indoor navigation with:
-//  • Dijkstra pathfinding on campus graph
-//  • QR code scanning for start node
-//  • flutter_tts voice directions
-//  • Arrow-based visual path display
-//  • College Green accent theme
 // ============================================================
 
 import 'package:flutter/material.dart';
@@ -19,7 +12,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/language_provider.dart';
 import '../../utils/app_theme.dart';
-import '../ar_scan_screen.dart'; // ← AR Navigation (compass + TTS + HUD)
+import '../../widgets/campus_mini_map.dart'; // ✅ Added custom vector map import
+import '../ar_scan_screen.dart'; 
 
 // ── Campus accent color ───────────────────────────────────
 const Color collegeGreen      = Color(0xFF1B6B3A);
@@ -103,6 +97,11 @@ class _CampusNavigationScreenState extends State<CampusNavigationScreen>
     final nav  = context.watch<NavigationProvider>();
     final lang = context.watch<LanguageProvider>();
 
+    // ✅ EXTRACT LIVE PATH ID STRINGS FOR THE CANVAS RENDERING MESH
+    final List<String> shortestPathIds = nav.campusResult != null && nav.campusResult!.found
+        ? nav.campusResult!.path
+        : [];
+
     return Scaffold(
       // ── AppBar ────────────────────────────────────────
       appBar: AppBar(
@@ -130,7 +129,6 @@ class _CampusNavigationScreenState extends State<CampusNavigationScreen>
           ],
         ),
         actions: [
-          // Reset button
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Reset',
@@ -143,7 +141,7 @@ class _CampusNavigationScreenState extends State<CampusNavigationScreen>
         ],
       ),
 
-      backgroundColor: const Color(0xFFF0F7F3), // soft green-tinted bg
+      backgroundColor: const Color(0xFFF0F7F3),
 
       body: FadeTransition(
         opacity: _fadeAnim,
@@ -154,6 +152,14 @@ class _CampusNavigationScreenState extends State<CampusNavigationScreen>
             children: [
               // ── Campus info banner ─────────────────────
               _CampusBanner(),
+              const SizedBox(height: 16),
+
+              // ── ✅ NEW: LIVE VECTOR MINI-MAP INTERACTION WORKSPACE ──
+              CampusMiniMap(
+                startNodeId: nav.campusStartNode?.id,
+                endNodeId: nav.campusEndNode?.id,
+                activePathNodes: shortestPathIds,
+              ),
               const SizedBox(height: 16),
 
               // ── Step 1: Scan / Select Start ────────────
@@ -171,7 +177,6 @@ class _CampusNavigationScreenState extends State<CampusNavigationScreen>
                     ? 1.0
                     : 0.45,
                 duration: const Duration(milliseconds: 300),
-                // ignore: prefer_const_constructors
                 child: _GreenButton(
                   label: nav.isComputing
                       ? 'Calculating...'
@@ -181,7 +186,6 @@ class _CampusNavigationScreenState extends State<CampusNavigationScreen>
                           nav.campusEndNode != null)
                       ? () async {
                           await nav.computeCampusPath();
-                          // Announce result via TTS
                           if (nav.campusResult != null &&
                               nav.campusResult!.found &&
                               nav.campusResult!.path.length >= 2) {
@@ -204,13 +208,10 @@ class _CampusNavigationScreenState extends State<CampusNavigationScreen>
               // ── Result ────────────────────────────────
               if (nav.campusResult != null) ...[
                 if (nav.campusResult!.found) ...[
-                  // Visual arrow path
                   _ArrowPathCard(nav: nav),
                   const SizedBox(height: 16),
 
-                  // ── ★ AR Navigation Launch Button ──────
-                  // Launches the compass-driven AR overlay
-                  // with the computed campus Dijkstra path.
+                  // AR Navigation Launch Button
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: ElevatedButton.icon(
@@ -227,7 +228,7 @@ class _CampusNavigationScreenState extends State<CampusNavigationScreen>
                           MaterialPageRoute(
                             builder: (_) => ArScanScreen(
                               pathNodeIds: nav.campusResult!.path,
-                              isCampusMode: true, // ← use campus graph
+                              isCampusMode: true,
                             ),
                           ),
                         );
@@ -242,7 +243,6 @@ class _CampusNavigationScreenState extends State<CampusNavigationScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // Step-by-step instructions + TTS
                   _StepByStepCard(
                     nav: nav,
                     isSpeaking: _isSpeaking,
@@ -262,9 +262,7 @@ class _CampusNavigationScreenState extends State<CampusNavigationScreen>
   }
 }
 
-// ──────────────────────────────────────────────────────────
-// Campus Info Banner
-// ──────────────────────────────────────────────────────────
+// ── Reusable Component Modules (Unchanged Rest of File Structural Nodes) ──
 class _CampusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -332,9 +330,6 @@ class _CampusBanner extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────────
-// Step 1 — Start Node Card (QR + manual chips)
-// ──────────────────────────────────────────────────────────
 class _StartNodeCard extends StatelessWidget {
   final NavigationProvider nav;
   final LanguageProvider lang;
@@ -346,7 +341,6 @@ class _StartNodeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               const _StepBadge(label: '1', color: collegeGreen),
@@ -368,11 +362,10 @@ class _StartNodeCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Scanned node display
           if (nav.campusStartNode != null)
             _ScannedBadge(
               icon: nav.campusStartNode!.icon,
-              name: lang.t(nav.campusStartNode!.id), // ✅ Localizes your current matching station tag
+              name: lang.t(nav.campusStartNode!.id),
               qr: nav.campusStartNode!.qrCode,
             )
           else
@@ -401,7 +394,6 @@ class _StartNodeCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // QR Scan button
           SizedBox(
             height: 48,
             child: ElevatedButton.icon(
@@ -424,7 +416,6 @@ class _StartNodeCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Manual node chips
           Text('Or tap to select your location:',
             style: GoogleFonts.inter(
                 fontSize: 11, color: AppTheme.textLight)),
@@ -449,7 +440,7 @@ class _StartNodeCard extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    '${node.icon} ${lang.t(node.id)}', // ✅ Translates campus selector button tags live
+                    '${node.icon} ${lang.t(node.id)}',
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -467,9 +458,6 @@ class _StartNodeCard extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────────
-// Step 2 — Destination Dropdown
-// ──────────────────────────────────────────────────────────
 class _DestinationCard extends StatelessWidget {
   final NavigationProvider nav;
   final LanguageProvider lang;
@@ -509,20 +497,17 @@ class _DestinationCard extends StatelessWidget {
               prefixIcon: const Icon(Icons.flag_rounded, color: collegeGreen),
               filled: true,
               fillColor: Colors.white,
-              border: OutlineInputBorder( // ignore: prefer_const_constructors
-              
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
                     color: collegeGreen.withValues(alpha: 0.30)),
               ),
-              focusedBorder: OutlineInputBorder( // ignore: prefer_const_constructors
-              
+              focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide:
                     const BorderSide(color: collegeGreen, width: 2),
               ),
-              enabledBorder: OutlineInputBorder( // ignore: prefer_const_constructors
-              
+              enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
                     color: collegeGreen.withValues(alpha: 0.25)),
@@ -541,7 +526,7 @@ class _DestinationCard extends StatelessWidget {
                               style: const TextStyle(fontSize: 18)),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text(lang.t(node.id), // ✅ Localizes the dropdown choices
+                            child: Text(lang.t(node.id),
                               style: GoogleFonts.inter(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500),
@@ -562,9 +547,6 @@ class _DestinationCard extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────────
-// Arrow Path Card — Visual path with arrow icons
-// ──────────────────────────────────────────────────────────
 class _ArrowPathCard extends StatelessWidget {
   final NavigationProvider nav;
   const _ArrowPathCard({required this.nav});
@@ -577,7 +559,6 @@ class _ArrowPathCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               const Icon(Icons.route_rounded,
@@ -608,7 +589,6 @@ class _ArrowPathCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Arrow path visual — wraps into rows
           Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 4,
@@ -618,7 +598,6 @@ class _ArrowPathCard extends StatelessWidget {
 
           const SizedBox(height: 14),
 
-          // Distance info
           Row(
             children: [
               const Icon(Icons.straighten_rounded,
@@ -645,7 +624,6 @@ class _ArrowPathCard extends StatelessWidget {
       final isStart = i == 0;
       final isEnd   = i == path.length - 1;
 
-      // Node chip
       widgets.add(
         Container(
           padding: const EdgeInsets.symmetric(
@@ -680,7 +658,7 @@ class _ArrowPathCard extends StatelessWidget {
                   style: const TextStyle(fontSize: 14)),
               const SizedBox(width: 5),
               Text(
-                node != null ? Provider.of<LanguageProvider>(context, listen: false).t(node.id) : path[i], // ✅ Updates route badges
+                node != null ? Provider.of<LanguageProvider>(context, listen: false).t(node.id) : path[i],
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -696,7 +674,6 @@ class _ArrowPathCard extends StatelessWidget {
         ),
       );
 
-      // Arrow between nodes
       if (i < path.length - 1) {
         widgets.add(
           const Padding(
@@ -715,9 +692,6 @@ class _ArrowPathCard extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────────
-// Step-by-Step + TTS Card
-// ──────────────────────────────────────────────────────────
 class _StepByStepCard extends StatelessWidget {
   final NavigationProvider nav;
   final bool isSpeaking;
@@ -736,7 +710,6 @@ class _StepByStepCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header + TTS button
           Row(
             children: [
               const Icon(Icons.format_list_numbered_rounded,
@@ -749,7 +722,6 @@ class _StepByStepCard extends StatelessWidget {
                     color: collegeGreen)),
               const Spacer(),
 
-              // ── Speak Directions Button ───────────────
               GestureDetector(
                 onTap: onSpeak,
                 child: AnimatedContainer(
@@ -789,7 +761,6 @@ class _StepByStepCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Steps list
           ...steps.asMap().entries.map((entry) {
             final i       = entry.key;
             final step    = entry.value;
@@ -802,7 +773,6 @@ class _StepByStepCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Timeline
                     SizedBox(
                       width: 32,
                       child: Column(
@@ -848,7 +818,6 @@ class _StepByStepCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
 
-                    // Step text
                     Expanded(
                       child: Padding(
                         padding: EdgeInsets.only(
@@ -879,9 +848,6 @@ class _StepByStepCard extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────────
-// Campus QR Scanner Screen
-// ──────────────────────────────────────────────────────────
 class _CampusQrScannerScreen extends StatefulWidget {
   const _CampusQrScannerScreen();
 
@@ -895,20 +861,18 @@ class _CampusQrScannerScreenState
   final MobileScannerController _ctrl = MobileScannerController();
   bool _hasScanned = false;
 
-  // QR payload → campus node ID mapping
   static const Map<String, String> _qrMap = {
     'RNSIT_GATE':       'main_gate',
     'RNSIT_MECH':       'mechanical_block',
     'RNSIT_MBA':        'mba_block',
-    'RNSIT_FOOD':      'food_court',
-    'RNSIT_LIBRARY':      'library',
+    'RNSIT_FOOD':       'food_court',
+    'RNSIT_LIBRARY':    'library',
     'RNSIT_TEMPLE':     'temple_parking',
-    // Also accept raw node IDs directly
     'main_gate':        'main_gate',
     'mechanical_block': 'mechanical_block',
     'mba_block':        'mba_block',
-    'food_court':     'food_court',
-    'library':     'library',
+    'food_court':       'food_court',
+    'library':          'library',
     'temple_parking':   'temple_parking',
   };
 
@@ -924,7 +888,6 @@ class _CampusQrScannerScreenState
     if (value == null || value.isEmpty) return;
 
     final nodeId = _qrMap[value];
-
     _hasScanned = true;
 
     if (nodeId != null) {
@@ -941,7 +904,6 @@ class _CampusQrScannerScreenState
         duration: const Duration(seconds: 2),
       ));
     }
-
     Navigator.of(context).pop();
   }
 
@@ -967,8 +929,6 @@ class _CampusQrScannerScreenState
       body: Stack(
         children: [
           MobileScanner(controller: _ctrl, onDetect: _onDetect),
-
-          // Scan frame
           Center(
             child: Container(
               width: 260, height: 260,
@@ -979,8 +939,6 @@ class _CampusQrScannerScreenState
               ),
             ),
           ),
-
-          // Instructions
           Positioned(
             bottom: 60, left: 20, right: 20,
             child: Column(
@@ -1001,7 +959,7 @@ class _CampusQrScannerScreenState
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'Supported: RNSIT_GATE, RNSIT_MECH,\nRNSIT_MBA, RNSIT_FOOD1, RNSIT_FOOD2, RNSIT_TEMPLE',
+                    'Supported: RNSIT_GATE, RNSIT_MECH,\nRNSIT_MBA, RNSIT_FOOD, RNSIT_LIBRARY, RNSIT_TEMPLE',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                         fontSize: 11, color: Colors.white70),
@@ -1015,10 +973,6 @@ class _CampusQrScannerScreenState
     );
   }
 }
-
-// ──────────────────────────────────────────────────────────
-// Reusable Widgets
-// ──────────────────────────────────────────────────────────
 
 class _GreenCard extends StatelessWidget {
   final Widget child;
