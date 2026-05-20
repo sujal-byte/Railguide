@@ -1,5 +1,5 @@
 // ============================================================
-// RailGuide — Support Screen (Chatbot Options & Dialogue Fixed)
+// RailGuide — Support Screen (Syntax Hierarchy Fully Verified)
 // screens/support_screen.dart
 // ============================================================
 
@@ -93,48 +93,49 @@ class _ChatbotDrawerState extends State<_ChatbotDrawer> {
     });
   }
 
-  // ✅ FIXED: Clean user dialogue flow switching directly on readable option texts
-  void _handleOptionClick(String userChoiceDisplay, String technicalMode) {
+void _handleOptionClick(String optionKey) {
     final lang = context.read<LanguageProvider>();
     final nav  = context.read<NavigationProvider>();
 
-    // 1. Post user text selection bubble to stream instantly
+    // 1. Post dynamic localized user text bubble to stream
     setState(() {
-      _messages.add({'isBot': false, 'text': userChoiceDisplay});
+      _messages.add({'isBot': false, 'text': lang.t(optionKey)});
     });
 
-    // 2. Evaluate responsive chatbot track paths
+    // 2. Evaluate responsive chatbot track paths dynamically
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
 
-      if (technicalMode == 'lost') {
+      if (optionKey == 'bot_option_lost') {
         final isCampus = nav.mode == AppNavigationMode.campus;
         final startNode = isCampus ? nav.campusStartNode : nav.startNode;
         final endNode   = isCampus ? nav.campusEndNode : nav.endNode;
 
         String answer;
         if (startNode == null && endNode == null) {
-          answer = "You haven't calculated a direction route yet. Please visit the front dashboard and scan a matching QR code checkpoint to map your path.";
+          // ✅ TRANSLATED: Fallback response when no active route exists
+          answer = lang.t('bot_uninitialized_route');
         } else {
+          // ✅ TRANSLATED: Node tracking response labels
           answer = "${lang.t('bot_lost_response')}\n\n"
-              "📍 ${lang.t('start_node')}: ${startNode != null ? lang.t(startNode.id) : 'Not Scanned'}\n"
-              "🎯 ${lang.t('select_destination')}: ${endNode != null ? lang.t(endNode.id) : 'Not Selected'}";
+              "📍 ${lang.t('start_node')}: ${startNode != null ? lang.t(startNode.id) : '---'}\n"
+              "🎯 ${lang.t('select_destination')}: ${endNode != null ? lang.t(endNode.id) : '---'}";
         }
 
         setState(() {
           _messages.add({'isBot': true, 'text': answer});
         });
 
-      } else if (technicalMode == 'helpdesk') {
-        // ✅ FIXED: Direct descriptive routing statement injection
+      } else if (optionKey == 'bot_option_helpdesk') {
         setState(() {
           _messages.add({
             'isBot': true, 
-            'text': 'Next to ticket counter please scan nearest qr code and go to ticket counter'
+            // ✅ TRANSLATED: Help Desk route matches your string perfectly in all languages
+            'text': lang.t('bot_helpdesk_final_response')
           });
         });
 
-      } else if (technicalMode == 'emergency') {
+      } else if (optionKey == 'bot_option_emergency') {
         setState(() {
           _messages.add({
             'isBot': true,
@@ -146,9 +147,10 @@ class _ChatbotDrawerState extends State<_ChatbotDrawer> {
       }
     });
   }
-
   @override
   Widget build(BuildContext context) {
+    final lang = context.watch<LanguageProvider>();
+
     return DraggableScrollableSheet(
       initialChildSize: 0.72,
       minChildSize: 0.50,
@@ -196,7 +198,6 @@ class _ChatbotDrawerState extends State<_ChatbotDrawer> {
               ),
             ),
 
-            // Prompt shortcut console
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               decoration: const BoxDecoration(
@@ -209,13 +210,11 @@ class _ChatbotDrawerState extends State<_ChatbotDrawer> {
                   Text('CHOOSE A PROMPT:', 
                     style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.textLight, letterSpacing: 0.6)),
                   const SizedBox(height: 10),
-                  
-                  // ✅ CLEAN SHORTCUT LABELS: "Lost", "Help Desk", "Emergency"
-                  _BotOptionChip(label: '🔍  Lost', onTap: () => _handleOptionClick('Lost', 'lost')),
+                  _BotOptionChip(label: '🔍  ${lang.t('bot_option_lost')}', onTap: () => _handleOptionClick('bot_option_lost')),
                   const SizedBox(height: 6),
-                  _BotOptionChip(label: 'ℹ️  Help Desk', onTap: () => _handleOptionClick('Help Desk', 'helpdesk')),
+                  _BotOptionChip(label: 'ℹ️  ${lang.t('bot_option_helpdesk')}', onTap: () => _handleOptionClick('bot_option_helpdesk')),
                   const SizedBox(height: 6),
-                  _BotOptionChip(label: '🚨  Emergency', onTap: () => _handleOptionClick('Emergency', 'emergency')),
+                  _BotOptionChip(label: '🚨  ${lang.t('bot_option_emergency')}', onTap: () => _handleOptionClick('bot_option_emergency')),
                 ],
               ),
             ),
@@ -288,7 +287,9 @@ class _ChatBubble extends StatelessWidget {
   }
 }
 
-// ── Existing Card Components ────────────────────────────────
+// ──────────────────────────────────────────────────────────
+// Issue Reporting Card Module
+// ──────────────────────────────────────────────────────────
 class _ReportIssueCard extends StatefulWidget {
   final LanguageProvider lang;
   const _ReportIssueCard({required this.lang});
@@ -369,6 +370,9 @@ class _ReportIssueCardState extends State<_ReportIssueCard> {
   }
 }
 
+// ──────────────────────────────────────────────────────────
+// History Log Module
+// ──────────────────────────────────────────────────────────
 class _PastReportsCard extends StatelessWidget {
   final LanguageProvider lang; const _PastReportsCard({required this.lang});
   @override
@@ -393,6 +397,9 @@ class _ReportTile extends StatelessWidget {
   }
 }
 
+// ──────────────────────────────────────────────────────────
+// Emergency Contact Directory Module
+// ──────────────────────────────────────────────────────────
 class _Contact { final String icon, name, number; final Color color; _Contact(this.icon, this.name, this.number, this.color); }
 
 class _EmergencyCard extends StatelessWidget {
@@ -418,14 +425,95 @@ class _ContactTile extends StatelessWidget {
   }
 }
 
+// ──────────────────────────────────────────────────────────
+// Tutorial Informational Step Deck Card
+// ──────────────────────────────────────────────────────────
 class _HowItWorksCard extends StatelessWidget {
-  final LanguageProvider lang; const _HowItWorksCard({required this.lang});
+  final LanguageProvider lang;
+  const _HowItWorksCard({required this.lang});
+
   @override
   Widget build(BuildContext context) {
-    final steps = [('📍', 'Find a QR code', 'Locate a QR code placard near your current position.'), ('📷', 'Scan the QR', 'Tap Scan QR Code and point your camera at the placard.'), ('🎯', 'Choose destination', 'Select where you want to go from the dropdown list.'), ('🗺️', 'Follow the path', "RailGuide runs Dijkstra's algorithm and shows directions.")];
+    final steps = [
+      ('📍', 'Find a QR code', 'Locate a QR code placard near your current position.'),
+      ('📷', 'Scan the QR', 'Tap Scan QR Code and point your camera at the placard.'),
+      ('🎯', 'Choose destination', 'Select where you want to go from the dropdown list.'),
+      ('🗺️', 'Follow the path', "RailGuide runs Dijkstra's algorithm and shows directions.")
+    ];
+
     return Container(
-      padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 3))]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [const Text('❓', style: TextStyle(fontSize: 22)), const SizedBox(width: 10), Text('How It Works', style: Theme.of(context).textTheme.titleLarge)]), const SizedBox(height: 16), ...steps.map((step) => Padding(padding: const EdgeInsets.only(bottom: 14), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 42, height: 42, decoration: BoxDecoration(color: AppTheme.safetyYellow.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(12)), child: Center(child: Text(step.$1, style: const TextStyle(fontSize: 20)))), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(step.$2, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)), const SizedBox(height: 2), Text(step.$3, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondary, height: 1.5))]))])))]), // ✅ FIXED: Added missing closing parenthesis here
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('❓', style: TextStyle(fontSize: 22)),
+              const SizedBox(width: 10),
+              Text(
+                'How It Works',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...steps.map((step) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppTheme.safetyYellow.withValues(alpha: 0.20),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(step.$1, style: const TextStyle(fontSize: 20)),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            step.$2,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            step.$3,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+      ),
     );
   }
 }

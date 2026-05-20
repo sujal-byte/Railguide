@@ -121,6 +121,8 @@ class LanguageProvider extends ChangeNotifier {
       'bot_lost_response': 'Don\'t worry! Here are your navigation session nodes:',
       'bot_helpdesk_response': 'You can visit the main Help Desk at the Station Entrance or call us at +91-80-2220-0000.',
       'bot_emergency_prompt': 'Which emergency service do you need?',
+      'bot_helpdesk_final_response': 'Next to ticket counter please scan nearest qr code and go to ticket counter.',
+      'bot_uninitialized_route': 'You haven\'t calculated a direction route yet. Please visit the front dashboard and scan a matching QR code checkpoint to map your path.',
     },
     'hi': {
       'app_title': 'रेलगाइड',
@@ -197,6 +199,8 @@ class LanguageProvider extends ChangeNotifier {
       'bot_lost_response': 'चिंता न करें! यहाँ आपके नेविगेशन सत्र के नोड्स हैं:',
       'bot_helpdesk_response': 'आप स्टेशन प्रवेश द्वार पर मुख्य हेल्प डेस्क पर जा सकते हैं या +91-80-2220-0000 पर कॉल कर सकते हैं।',
       'bot_emergency_prompt': 'आपको कौन सी आपातकालीन सेवा की आवश्यकता है?',
+      'bot_helpdesk_final_response': 'टिकट काउंटर के बगल में, कृपया निकटतम क्यूआर कोड को स्कैन करें और टिकट काउंटर पर जाएं।',
+      'bot_uninitialized_route': 'आपने अभी तक कोई नेविगेशन मार्ग निर्धारित नहीं किया है। कृपया मुख्य डैशबोर्ड पर जाएं और अपना रास्ता खोजने के लिए क्यूआर कोड स्कैन करें।',
     },
     'kn': {
       'app_title': 'ರೈಲ್‌ಗೈಡ್',
@@ -273,6 +277,8 @@ class LanguageProvider extends ChangeNotifier {
       'bot_lost_response': 'ಚಿಂತಿಸಬೇಡಿ! ನಿಮ್ಮ ನ್ಯಾವಿಗೇಶನ್ ನೋಡ್‌ಗಳು ಇಲ್ಲಿವೆ:',
       'bot_helpdesk_response': 'ನೀವು ನಿಲ್ದಾಣದ ಪ್ರವೇಶದ್ವಾರದಲ್ಲಿರುವ ಮುಖ್ಯ ಸಹಾಯ ಕೇಂದ್ರಕ್ಕೆ ಭೇಟಿ ನೀಡಬಹುದು ಅಥವಾ +91-80-2220-0000 ಗೆ ಕರೆ ಮಾಡಬಹುದು.',
       'bot_emergency_prompt': 'ನಿಮಗೆ ಯಾವ ತುರ್ತು ಸೇವೆಯ ಅಗತ್ಯವಿದೆ?',
+      'bot_helpdesk_final_response': 'ಟಿಕೆಟ್ ಕೌಂಟರ್ ಪಕ್ಕದಲ್ಲಿ, ದಯವಿಟ್ಟು ಹತ್ತಿರದ ಕ್ಯೂಆರ್ ಕೋಡ್ ಅನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ ಮತ್ತು ಟಿಕೆಟ್ ಕೌಂಟರ್‌ಗೆ ಹೋಗಿ.',
+      'bot_uninitialized_route': 'ನೀವು ಇನ್ನು ಯಾವುದೇ ನ್ಯಾವಿಗೇಶನ್ ಮಾರ್ಗವನ್ನು ಆಯ್ಕೆ ಮಾಡಿಲ್ಲ. ದಯವಿಟ್ಟು ಮುಖ್ಯ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಹೋಗಿ ಹತ್ತಿರದ ಕ್ಯೂಆರ್ ಕೋಡ್ ಅನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',
     },
   };
 }
