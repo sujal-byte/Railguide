@@ -589,72 +589,56 @@ class _ErrorCard extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────────
-// Welcome Banner
-// ──────────────────────────────────────────────────────────
+// Look for this widget near the bottom of lib/screens/home_screen.dart:
 class _WelcomeBanner extends StatelessWidget {
   final RailAuthProvider auth;
+
   const _WelcomeBanner({required this.auth});
 
   @override
   Widget build(BuildContext context) {
+    final lang = context.watch<LanguageProvider>();
+    
+    // Check if a valid student identity string is registered in state
+    final String identityDisplay = auth.studentUsn ?? "Guest Commuter";
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.railwayBlue, AppTheme.railwayBlueLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.railwayBlue.withValues(alpha: 0.30),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: AppTheme.railwayBlue.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.railwayBlue.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
+          const CircleAvatar(
+            backgroundColor: AppTheme.railwayBlue,
+            radius: 24,
+            child: Icon(Icons.person, color: Colors.white, size: 26),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Welcome back!',
-                  style: GoogleFonts.inter(
-                      fontSize: 13, color: Colors.white70)),
-                const SizedBox(height: 4),
                 Text(
-                  auth.isGuest
-                      ? 'Guest Passenger'
-                      : auth.userEmail?.split('@').first ?? 'Passenger',
-                  style: GoogleFonts.rajdhani(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                  '${lang.t('welcome')},',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppTheme.safetyYellow,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text('📍 Bengaluru City Station',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.railwayBlue,
-                    ),
+                Text(
+                  identityDisplay, // Cleanly displays the student USN identifier safely
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
               ],
             ),
           ),
-          const Text('🚂', style: TextStyle(fontSize: 52)),
         ],
       ),
     );

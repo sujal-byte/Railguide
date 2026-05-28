@@ -40,7 +40,7 @@ class RailGuideApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
+    return MultiProvider( 
       providers: [
         ChangeNotifierProvider(create: (_) => RailAuthProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
